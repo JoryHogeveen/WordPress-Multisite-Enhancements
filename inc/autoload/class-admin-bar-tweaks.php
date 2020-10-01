@@ -3,22 +3,24 @@
  * Adds several useful items to the multisite 'Network Admin' admin bar.
  *
  * @since   2013-07-19
- * @version 2016-04-07
+ * @version 2016-10-28
+ * @package WordPress
  */
 
 add_action( 'init', array( 'Multisite_Admin_Bar_Tweaks', 'init' ) );
 
+/**
+ * Class Multisite_Admin_Bar_Tweaks
+ */
 class Multisite_Admin_Bar_Tweaks {
 
 	/**
 	 * Initialize this class.
-	 *
 	 */
 	public static function init() {
-
 		$class = __CLASS__;
 		if ( empty( $GLOBALS[ $class ] ) ) {
-			$GLOBALS[ $class ] = new $class;
+			$GLOBALS[ $class ] = new $class();
 		}
 	}
 
@@ -28,7 +30,6 @@ class Multisite_Admin_Bar_Tweaks {
 	 * @since   0.0.1
 	 */
 	public function __construct() {
-
 		add_action( 'wp_before_admin_bar_render', array( $this, 'enhance_network_admin_bar' ) );
 		add_action( 'wp_before_admin_bar_render', array( $this, 'enhance_network_blog_admin_bar' ) );
 	}
@@ -39,18 +40,22 @@ class Multisite_Admin_Bar_Tweaks {
 	 * @since   0.0.1
 	 */
 	public function enhance_network_admin_bar() {
-
 		global $wp_admin_bar;
 
 		// Show only when the user has at least one site, or they're a super admin.
-		if ( count( $wp_admin_bar->user->blogs ) < 1 ) {
+		if ( ! isset( $wp_admin_bar->user->blogs ) || count( $wp_admin_bar->user->blogs ) < 1 ) {
 			return;
 		}
 
 		// Since WP version 3.7 is the plugin link in core.
 		// Return, if is active.
-		/** @var WP_Admin_Bar $wp_admin_bar */
+		/**
+		 * Toolbar API class.
+		 *
+		 * @var WP_Admin_Bar $wp_admin_bar
+		 */
 		$wp_admin_bar_nodes = (array) $wp_admin_bar->get_nodes();
+
 		if ( array_key_exists( 'network-admin-p', $wp_admin_bar_nodes ) ) {
 			return;
 		}
@@ -75,24 +80,30 @@ class Multisite_Admin_Bar_Tweaks {
 	 */
 	public function enhance_network_blog_admin_bar() {
 
-		/** @var WP_Admin_Bar $wp_admin_bar */
+		/**
+		 * The Toolbar API class.
+		 *
+		 * @var WP_Admin_Bar $wp_admin_bar
+		 */
 		global $wp_admin_bar;
 
+		if ( ! isset( $wp_admin_bar->user->blogs ) ) {
+			return;
+		}
+		
 		foreach ( (array) $wp_admin_bar->user->blogs as $blog ) {
-
 			switch_to_blog( $blog->userblog_id );
 
 			$menu_id = 'blog-' . $blog->userblog_id;
 
 			if ( current_user_can( 'edit_posts' ) ) {
-
 				$wp_admin_bar->remove_node( $menu_id . '-c' );
 
 				$awaiting_mod = wp_count_comments();
 				$awaiting_mod = $awaiting_mod->moderated;
 
 				$title = __( 'Manage Comments' )
-					. '<span id="ab-awaiting-mod" class="ab-label awaiting-mod pending-count count-'
+					. '<span class="ab-label awaiting-mod pending-count count-'
 					. (int) $awaiting_mod . '" style="margin-left:.2em">' . number_format_i18n( $awaiting_mod ) . '</span>';
 
 				$awaiting_title = esc_attr(

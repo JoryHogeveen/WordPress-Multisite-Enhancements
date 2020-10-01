@@ -3,21 +3,16 @@
  * On the network plugins page, show which blogs have this plugin active.
  *
  * @since   2013-07-19
- * @version 2016-01-15
+ * @version 2019-11-14
  * @package WordPress
  */
 
 add_action( 'init', array( 'Multisite_Add_Plugin_List', 'init' ) );
 
+/**
+ * Class Multisite_Add_Plugin_List
+ */
 class Multisite_Add_Plugin_List {
-
-	/**
-	 * Value to get sites in the Network.
-	 *
-	 * @since 2015-02-26
-	 * @var int
-	 */
-	private $sites_limit = 9999;
 
 	/**
 	 * On this plugin status will not show the not or activated status in the table of plugins.
@@ -26,7 +21,45 @@ class Multisite_Add_Plugin_List {
 	 * @var    array
 	 */
 	static protected $excluded_plugin_status = array( 'dropins', 'mustuse' );
-
+	/**
+	 * String for the transient string, there save the blog plugins.
+	 *
+	 * @since  2015-02-21
+	 * @var    string
+	 */
+	static protected $site_transient_blogs_plugins = 'blogs_plugins';
+	/**
+	 * Define the allowed html tags for wp_kses.
+	 *
+	 * @var array
+	 */
+	static protected $wp_kses_allowed_html = array(
+		'br'   => array(),
+		'span' => array(
+			'class' => array(),
+		),
+		'ul'   => array(
+			'id'    => array(),
+			'class' => array(),
+		),
+		'li'   => array(
+			'title' => array(),
+			'class' => array(),
+		),
+		'a'    => array(
+			'href'    => array(),
+			'onclick' => array(),
+			'title'   => array(),
+		),
+		'p'    => array(),
+	);
+	/**
+	 * Value to get sites in the Network.
+	 *
+	 * @since 2015-02-26
+	 * @var int
+	 */
+	private $sites_limit = 9999;
 	/**
 	 * Member variable to store data about active plugins for each blog.
 	 *
@@ -36,30 +69,12 @@ class Multisite_Add_Plugin_List {
 	private $blogs_plugins;
 
 	/**
-	 * String for the transient string, there save the blog plugins.
-	 *
-	 * @since  2015-02-21
-	 * @var    string
-	 */
-	static protected $site_transient_blogs_plugins = 'blogs_plugins';
-
-	/**
-	 * Initialize the class.
-	 */
-	public static function init() {
-
-		$class = __CLASS__;
-		if ( empty( $GLOBALS[ $class ] ) ) {
-			$GLOBALS[ $class ] = new $class;
-		}
-	}
-
-	/**
 	 * Init function to register all used hooks.
 	 *
 	 * @since   0.0.1
 	 */
 	public function __construct() {
+		add_action( 'load-plugins.php', array( $this, 'development_helper' ) );
 
 		// Fires after a plugin has been activated; but not on silently activated, like update.
 		add_action( 'activated_plugin', array( $this, 'clear_plugins_site_transient' ), 10, 2 );
@@ -82,6 +97,30 @@ class Multisite_Add_Plugin_List {
 	}
 
 	/**
+	 * Initialize the class.
+	 */
+	public static function init() {
+		$class = __CLASS__;
+		if ( empty( $GLOBALS[ $class ] ) ) {
+			$GLOBALS[ $class ] = new $class();
+		}
+	}
+
+	/**
+	 * Print Network Admin Notices to inform, that the transient are deleted.
+	 *
+	 * @since 2016-10-23
+	 */
+	public function notice_about_clear_cache() {
+		$class   = 'notice notice-info';
+		$message = __(
+			'Multisite Enhancements: Plugin usage information is not cached while WP_DEBUG is true.',
+			'multisite-enhancements'
+		);
+		printf( '<div class="%1$s"><p>%2$s</p></div>', $class, esc_attr( $message ) );
+	}
+
+	/**
 	 * Add in a column header.
 	 *
 	 * @since  0.0.1
@@ -94,13 +133,13 @@ class Multisite_Add_Plugin_List {
 
 		// If not set, then no changes on output.
 		if ( ! array_key_exists( 'plugin_status', $_GET ) ) {
-			$_GET[ 'plugin_status' ] = '';
+			$_GET['plugin_status'] = '';
 		}
 
 		// Not useful on different selections.
-		if ( ! in_array( esc_attr( $_GET[ 'plugin_status' ] ), self::$excluded_plugin_status, FALSE ) ) {
+		if ( ! in_array( esc_attr( $_GET['plugin_status'] ), self::$excluded_plugin_status, true ) ) {
 			// Translators: Active in is the head of the table column on plugin list.
-			$columns[ 'active_blogs' ] = _x( '<nobr>Active in </nobr>', 'column name' );
+			$columns['active_blogs'] = _x( 'Usage', 'column name', 'multisite-enhancements' );
 		}
 
 		return $columns;
@@ -108,6 +147,7 @@ class Multisite_Add_Plugin_List {
 
 	/**
 	 * Get data for each row on each plugin.
+	 * Echo the string.
 	 *
 	 * @since   0.0.1
 	 *
@@ -115,57 +155,79 @@ class Multisite_Add_Plugin_List {
 	 * @param  String $plugin_file Path to the plugin file.
 	 * @param  array  $plugin_data An array of plugin data.
 	 *
-	 * @return String
+	 * @return void
 	 */
 	public function manage_plugins_custom_column( $column_name, $plugin_file, $plugin_data ) {
-
 		if ( 'active_blogs' !== $column_name ) {
-			return NULL;
+			return null;
 		}
-
 		// Is this plugin network activated.
 		if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
-			require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
+			require_once ABSPATH . '/wp-admin/includes/plugin.php';
 		}
-
 		$active_on_network = is_plugin_active_for_network( $plugin_file );
-
 		$output = '';
-
 		if ( $active_on_network ) {
 			// We don't need to check any further for network active plugins.
 			// Translators: The plugin is network wide active, the string is for each plugin possible.
-			$output .= __( '<nobr>Network Activated</nobr>', 'multisite_enhancements' );
-
+			$output .= __( '<span style="white-space:nowrap">Network Activated</span>', 'multisite-enhancements' );
 			// List Blogs, there is activated.
 		} else {
 			// Is this plugin active on any blogs in this network.
 			$active_on_blogs = $this->is_plugin_active_on_blogs( $plugin_file );
-
 			if ( ! $active_on_blogs ) {
 				// Translators: The plugin is not activated, the string is for each plugin possible.
-				$output .= __( '<nobr>Not Activated</nobr>', 'multisite_enhancements' );
+				$output .= __( '<span style="white-space:nowrap">Not Activated</span>', 'multisite-enhancements' );
 			} else {
-				$output .= '<ul>';
-
-				foreach ( $active_on_blogs as $key => $value ) {
-					$output .= '<li title="Blog ID: ' . $key . '"><nobr><a href="' . get_admin_url(
-							$key
-						) . 'plugins.php">' . $value[ 'name' ] . '</a></nobr></li>';
+				$active_count   = sizeOf( $active_on_blogs );
+				$output        .= '<p>';
+				$is_list_hidden = false;
+				// Hide the list of sites if the class isn"t loaded or there's less or equal to 4 sites
+				if ( class_exists( 'Enqueue_Column_Style', false ) && $active_count > 4 ) {
+					$output .= sprintf(
+						_n( 'Active on %2$s %1$d site %3$s', 'Active on %2$s %1$d sites %3$s', $active_count, 'multisite-enhancements' ),
+						$active_count,
+						"<a onclick=\"jQuery('ul[id*=\'siteslist_{$plugin_file}\']').slideToggle('swing');\">",
+						'</a>'
+					);
+				} else {
+					$output .= sprintf(
+						_n( 'Active on %s site', 'Active on %s sites', $active_count, 'multisite-enhancements' ),
+						$active_count
+					);
+					$is_list_hidden = true;
 				}
-
+				$output .= '</p>';
+				$output .= '<ul id="siteslist_' . $plugin_file;
+				$output .= ( $is_list_hidden ) ? '">' : '" class="siteslist">';
+				foreach ( $active_on_blogs as $key => $value ) {
+					// Check the site for archived and deleted.
+					$class = $hint = '';
+					if ( $this->is_archived( $key ) ) {
+						$class = ' class="site-archived"';
+						$hint  = ', ' . esc_attr__( 'Archived' );
+					}
+					if ( $this->is_deleted( $key ) ) {
+						$class = ' class="site-deleted"';
+						$hint  .= ', ' . esc_attr__( 'Deleted' );
+					}
+					$output .= '<li' . $class . ' title="Blog ID: ' . $key . $hint . '">';
+					$output .= '<span class="non-breaking"><a href="' . get_admin_url( $key ) . 'plugins.php">'
+					. ( trim( $value['name'] ) ?: $value['path'] ) . '</a>' . $hint . '</span></li>';
+				}
 				$output .= '</ul>';
 			}
 		}
-
-		// Add indicator that the plugin is "Network Only".
-		if ( $plugin_data[ 'Network' ] ) {
-			$output .= '<br /><nobr class="submitbox"><span class="submitdelete">'
-				. __( ' Network Only', 'multisite_enhancements' )
-				. '</span></nobr>';
+		if ( ! isset( $plugin_data['Network'] ) ) {
+			$plugin_data['Network'] = false;
 		}
-
-		echo $output;
+		// Add indicator that the plugin is "Network Only".
+		if ( $plugin_data['Network'] ) {
+			$output .= '<br /><span style="white-space:nowrap" class="submitbox"><span class="submitdelete">'
+			. esc_attr__( 'Network Only', 'multisite-enhancements' )
+			. '</span></span>';
+		}
+		echo wp_kses( $output, self::$wp_kses_allowed_html );
 	}
 
 	/**
@@ -180,16 +242,15 @@ class Multisite_Add_Plugin_List {
 	 * @return array $active_in_plugins Which Blog ID and Name of Blog for each item in Array.
 	 */
 	public function is_plugin_active_on_blogs( $plugin_file ) {
-
 		$blogs_plugins = $this->get_blogs_plugins();
 
 		$active_in_plugins = array();
 
 		foreach ( $blogs_plugins as $blog_id => $data ) {
-			if ( in_array( $plugin_file, $data[ 'active_plugins' ], FALSE ) ) {
+			if ( in_array( $plugin_file, $data['active_plugins'], true ) ) {
 				$active_in_plugins[ $blog_id ] = array(
-					'name' => $data[ 'blogname' ],
-					'path' => $data[ 'blogpath' ],
+					'name' => $data['blogname'],
+					'path' => $data['blogpath'],
 				);
 			}
 		}
@@ -211,48 +272,66 @@ class Multisite_Add_Plugin_List {
 			return $this->blogs_plugins;
 
 			// If not, see if we can load data from the transient.
-		} else if ( FALSE === ( $this->blogs_plugins = get_site_transient( self::$site_transient_blogs_plugins ) ) ) {
+		} elseif ( false === ( $this->blogs_plugins = get_site_transient( self::$site_transient_blogs_plugins ) ) ) {
 
 			// Cannot load data from transient, so load from DB and set transient.
 			$this->blogs_plugins = array();
 
-			if ( function_exists( 'wp_get_sites' ) ) {
-				// Since 3.7 inside the Core.
-				$blogs = wp_get_sites(
-					array(
-						'limit' => $this->sites_limit,
-					)
-				);
-			} else {
-				// Use alternative to core function get_blog_list().
-				$blogs = Multisite_Core::get_blog_list( 0, 'all' );
-			}
+			$blogs = (array) Multisite_Core::get_blog_list( 0, $this->sites_limit );
 
-			/** @var array $blog */
-			foreach ( (array) $blogs as $blog ) {
-				$this->blogs_plugins[ $blog[ 'blog_id' ] ]                     = $blog;
-				$this->blogs_plugins[ $blog[ 'blog_id' ] ][ 'blogpath' ]       = get_blog_details(
-					$blog[ 'blog_id' ]
+			/**
+			 * Data to each site of the network, blogs.
+			 *
+			 * @var array $blog
+			 */
+			foreach ( $blogs as $blog ) {
+
+				// Convert object to array.
+				$blog = (array) $blog;
+
+				$this->blogs_plugins[ $blog['blog_id'] ]                   = $blog;
+				$this->blogs_plugins[ $blog['blog_id'] ]['blogpath']       = get_blog_details(
+					$blog['blog_id']
 				)->path;
-				$this->blogs_plugins[ $blog[ 'blog_id' ] ][ 'blogname' ]       = get_blog_details(
-					$blog[ 'blog_id' ]
+				$this->blogs_plugins[ $blog['blog_id'] ]['blogname']       = get_blog_details(
+					$blog['blog_id']
 				)->blogname;
-				$this->blogs_plugins[ $blog[ 'blog_id' ] ][ 'active_plugins' ] = array();
-				$plugins                                                       = get_blog_option(
-					$blog[ 'blog_id' ], 'active_plugins'
+				$this->blogs_plugins[ $blog['blog_id'] ]['active_plugins'] = array();
+				$plugins = (array) get_blog_option(
+					$blog['blog_id'],
+					'active_plugins'
 				);
 				if ( $plugins ) {
 					foreach ( $plugins as $plugin_file ) {
-						$this->blogs_plugins[ $blog[ 'blog_id' ] ][ 'active_plugins' ][] = $plugin_file;
+						$this->blogs_plugins[ $blog['blog_id'] ]['active_plugins'][] = $plugin_file;
 					}
 				}
 			}
 
-			set_site_transient( self::$site_transient_blogs_plugins, $this->blogs_plugins );
+			if ( ! $this->development_helper() ) {
+				set_site_transient( self::$site_transient_blogs_plugins, $this->blogs_plugins );
+			}
 		}
 
 		// Data should be here, if loaded from transient or DB.
 		return $this->blogs_plugins;
+	}
+
+	/**
+	 * Run helpers if the debug constant is true to help on development, debugging.
+	 *
+	 * @since  2016-10-23
+	 * @return bool
+	 */
+	public function development_helper() {
+		if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+			return false;
+		}
+
+		add_action( 'network_admin_notices', array( $this, 'notice_about_clear_cache' ) );
+		$this->clear_plugins_site_transient();
+
+		return true;
 	}
 
 	/**
@@ -261,8 +340,33 @@ class Multisite_Add_Plugin_List {
 	 * @since  2015-02-25
 	 */
 	public function clear_plugins_site_transient() {
-
 		delete_site_transient( self::$site_transient_blogs_plugins );
+	}
+
+	/**
+	 * Check, if the status of the site archived.
+	 *
+	 * @param integer $site_id ID of the site.
+	 *
+	 * @return bool
+	 */
+	public function is_archived( $site_id ) {
+		$site_id = (int) $site_id;
+
+		return (bool) get_blog_details( $site_id )->archived;
+	}
+
+	/**
+	 * Check, if the status of the site deleted.
+	 *
+	 * @param integer $site_id ID of the site.
+	 *
+	 * @return bool
+	 */
+	public function is_deleted( $site_id ) {
+		$site_id = (int) $site_id;
+
+		return (bool) get_blog_details( $site_id )->deleted;
 	}
 
 } // end class

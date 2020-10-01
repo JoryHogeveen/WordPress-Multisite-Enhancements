@@ -3,21 +3,24 @@
  * Core methods, there will be used.
  *
  * @since   2013-07-24
- * @version 2016-01-15
+ * @version 2016-10-28
+ * @package WordPress
  */
 
 add_action( 'init', array( 'Multisite_Core', 'init' ) );
 
+/**
+ * Class Multisite_Core
+ */
 class Multisite_Core {
 
 	/**
 	 * Init the class.
 	 */
 	public static function init() {
-
 		$class = __CLASS__;
 		if ( empty( $GLOBALS[ $class ] ) ) {
-			$GLOBALS[ $class ] = new $class;
+			$GLOBALS[ $class ] = new $class();
 		}
 	}
 
@@ -26,11 +29,11 @@ class Multisite_Core {
 	 *
 	 * Only blogs marked as public and flagged as safe (mature flag off) are returned.
 	 *
-	 * @param  Integer $start   The first blog to return in the array.
-	 * @param  Integer $num     The number of blogs to return in the array (thus the size of the array).
+	 * @param  Integer $start        The first blog to return in the array.
+	 * @param  Integer $num          The number of blogs to return in the array (thus the size of the array).
 	 *                          Setting this to string 'all' returns all blogs from $start.
 	 * @param  Boolean $details Get also Postcount for each blog, default is False for a better performance.
-	 * @param  Integer $expires Time until expiration in seconds, default 86400s (1day).
+	 * @param  Integer $expires      Time until expiration in seconds, default 86400s (1day).
 	 *
 	 * @return array   Returns an array of arrays each representing a blog.
 	 *                  Details are represented in the following format:
@@ -39,18 +42,35 @@ class Multisite_Core {
 	 *                      path      (string)  Path used to access this blog.
 	 *                      postcount (integer) The number of posts in this blog.
 	 */
-	public static function get_blog_list( $start = 0, $num = 10, $details = FALSE, $expires = 86400 ) {
+	public static function get_blog_list( $start = 0, $num = 10, $details = false, $expires = 86400 ) {
+
+		// Since WP version 4.6.0 is a new function inside the core to get this value.
+		if ( function_exists( 'get_sites' ) ) {
+			return get_sites(
+				array(
+					'number' => $num,
+				)
+			);
+		}
+
+		// For WordPress smaller version 4.6.0, available since WordPress 3.7.
+		if ( function_exists( 'wp_get_sites' ) ) {
+			return wp_get_sites(
+				array(
+					'limit' => $num,
+				)
+			);
+		}
 
 		// Get blog list from cache.
 		$blogs = get_site_transient( 'multisite_blog_list' );
 
 		// For debugging purpose.
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			$blogs = FALSE;
+			$blogs = false;
 		}
 
-		if ( FALSE === $blogs ) {
-
+		if ( false === $blogs ) {
 			global $wpdb;
 
 			// Add limit for select.
@@ -59,6 +79,8 @@ class Multisite_Core {
 				$limit = '';
 			}
 
+			/** @noinspection SqlDialectInspection */
+			/** @noinspection SqlNoDataSourceInspection */
 			$blogs = $wpdb->get_results(
 				$wpdb->prepare(
 					"
@@ -82,24 +104,31 @@ class Multisite_Core {
 		}
 
 		// Only if usable, set via var.
-		if ( TRUE === $details ) {
-
-			/** @var array $blog_list */
+		if (true === $details ) {
+			/**
+			 * Get data to each site in the network.
+			 *
+			 * @var array $blog_list
+			 */
 			$blog_list = get_site_transient( 'multisite_blog_list_details' );
 
 			// For debugging purpose.
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				$blog_list = FALSE;
+				$blog_list = false;
 			}
 
-			if ( FALSE === $blog_list ) {
-
+			if ( false === $blog_list ) {
 				global $wpdb;
-				foreach ( (array) $blogs as $details ) {
-					$blog_list[ $details[ 'blog_id' ] ]                = $details;
-					$blog_list[ $details[ 'blog_id' ] ][ 'postcount' ] = $wpdb->get_var(
+				/**
+				 * The data details of each site of the network.
+				 *
+				 * @var array $blog_details
+				 */
+				foreach ( (array) $blogs as $blog_details ) {
+					$blog_list[ $blog_details[ 'blog_id' ] ]                = $blog_details;
+					$blog_list[ $blog_details[ 'blog_id' ] ][ 'postcount' ] = $wpdb->get_var(
 						"SELECT COUNT(ID)
-						FROM " . $wpdb->get_blog_prefix( $details[ 'blog_id' ] ) . "posts
+						FROM " . $wpdb->get_blog_prefix( $blog_details[ 'blog_id' ] ) . "posts
 						WHERE post_status='publish'
 						AND post_type='post'"
 					);
@@ -112,7 +141,7 @@ class Multisite_Core {
 			$blogs = $blog_list;
 		}
 
-		if ( FALSE === is_array( $blogs ) ) {
+		if ( false === is_array( $blogs ) ) {
 			return array();
 		}
 

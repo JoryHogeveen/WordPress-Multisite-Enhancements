@@ -3,7 +3,7 @@
  * Add status labels to blogs.
  *
  * @since   2015-07-14
- * @version 2016-01-15
+ * @version 2019-11-14
  * @package WordPress
  */
 
@@ -20,10 +20,9 @@ class Multisite_Add_Site_Status_labels {
 	 * Initialize the class.
 	 */
 	public static function init() {
-
 		$class = __CLASS__;
 		if ( empty( $GLOBALS[ $class ] ) ) {
-			$GLOBALS[ $class ] = new $class;
+			$GLOBALS[ $class ] = new $class();
 		}
 	}
 
@@ -33,7 +32,6 @@ class Multisite_Add_Site_Status_labels {
 	 * @since  2015-07-14
 	 */
 	public function __construct() {
-
 		if ( ! current_user_can( 'manage_network' ) ) {
 			return;
 		}
@@ -54,15 +52,10 @@ class Multisite_Add_Site_Status_labels {
 		// Remove last string for exactly check.
 		$needle = rtrim( $needle, '/' );
 
-		if ( $needle && FALSE === strpos(
-				$haystack,
-				str_replace( array( 'http://', 'https://', '//' ), '', $needle )
-			)
-		) {
-			return TRUE;
-		}
-
-		return FALSE;
+		return $needle && false === strpos(
+			$haystack,
+			str_replace( array( 'http://', 'https://', '//' ), '', $needle )
+		);
 	}
 
 	/**
@@ -73,7 +66,6 @@ class Multisite_Add_Site_Status_labels {
 	 * @return bool
 	 */
 	public function is_site_live( $site_id ) {
-
 		$site_id = (int) $site_id;
 		return (bool) get_blog_option( $site_id, 'blog_public' );
 	}
@@ -87,23 +79,21 @@ class Multisite_Add_Site_Status_labels {
 	 *
 	 * @return mixed
 	 */
-	public function add_status_label( $admin_bar ) {
-
+	public function add_status_label( WP_Admin_Bar $admin_bar ) {
 		foreach ( $admin_bar->user->blogs as $key => $blog ) {
-
 			$url_hint  = '';
 			$live_hint = '';
 
 			if ( $this->check_external_url( $blog->siteurl, $admin_bar->user->domain ) ) {
-				$title    = esc_attr__( 'external domain', 'multisite_enhancements' );
+				$title    = esc_attr__( 'external domain', 'multisite-enhancements' );
 				$class    = 'ab-icon dashicons-before dashicons-external';
-				$url_hint = '<span title="' . $title . '" class="' . $class . '"></span>';
+				$url_hint = '<span style="padding:4px 0 0 0; margin: 0 4px 0 -4px" title="' . $title . '" class="' . $class . '"></span>';
 			}
 
 			if ( ! $this->is_site_live( $blog->userblog_id ) ) {
-				$title     = esc_attr__( 'noindex', 'multisite_enhancements' );
+				$title     = esc_attr__( 'noindex', 'multisite-enhancements' );
 				$class     = 'ab-icon dashicons-before dashicons-dismiss';
-				$live_hint = '<span title="' . $title . '" class="' . $class . '"></span>';
+				$live_hint = '<span style="padding:4px 0 0 0; margin: 0 4px 0 -4px" title="' . $title . '" class="' . $class . '"></span>';
 			}
 
 			// Add span markup.

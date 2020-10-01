@@ -1,44 +1,48 @@
 === Multisite Enhancements ===
 Contributors: Bueltge, inpsyde
 Tags: multisite, administration, admin bar, network,
-Requires at least: 3.0.0
-Tested up to: 4.6-alpha
-Stable tag: 1.3.5
+Requires at least: 4.6
+Tested up to: 5.3
+Requires PHP: 5.6
+Stable tag: 1.5.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 Enhance Multisite for Network Admins with different topics
 
 == Description ==
-When you work quite a bit with WordPress Multisites, sometimes you need more information or menu items. This plugin enhance the network area for super admins with useful functions.
+When you work quite a bit with WordPress Multisites, sometimes you need more information or menu items. This plugin enhances the network area for super admins with useful functions.
 
-* Add Blog and User ID in network; read [more](http://wpengineer.com/2188/view-blog-id-in-wordpress-multisite/)
+* Adds Blog and User ID in network view [more](http://wpengineer.com/2188/view-blog-id-in-wordpress-multisite/)
 * Enables an 'Add New' link under the Plugins menu for Network admins
 * Adds several useful items to the multisite 'Network Admin' admin bar
-* On the network plugins page, show which blog have this plugin active
-* On the network theme page, show which blog have the theme active and is it a Child theme
-* Change Admin footer text for Administrator's to view fast currently used RAM, SQL, RAM Version
-* Add Favicon from theme folder to the admin area to easier identify the blog, use the `favicon.ico` file in the theme folder of the active theme in each blog
-* Add Favicon to each blog on the Admin Bar Item 'My Sites'. If you a like a custom path for each favicon, please see the [documentation](https://github.com/bueltge/WordPress-Multisite-Enhancements/wiki/Filter-Hook-for-Favicon-File-Path) for this feature.
-* Remove also the 'W' logo and his sub-links in admin bar
-* Add status to each site in the admin bar to identifier fast if the site `noindex` status and external url.
+* On the network plugins page, shows which site has this plugin active
+* On the network theme page, shows which blog has the theme active and is a Child theme
+* Change Admin footer text for Administrators to view currently used RAM, SQL, RAM version fast
+* Adds Favicon from theme folder to the admin area to easily identify the blog, use the `favicon.ico` file in the theme folder of the active theme in each blog
+* Adds Favicon to each blog on the Admin Bar Item 'My Sites'. If you a like a custom path for each favicon, please see the [documentation](https://github.com/bueltge/WordPress-Multisite-Enhancements/wiki/Filter-Hook-for-Favicon-File-Path) for this feature.
+* Removes also the 'W' logo and his sub-links in admin bar
+* Adds the status to each site in the admin bar to identify fastly if the site has a `noindex` status and to see the external url.
+* Handy ssl identifier to each site in network site view page.
 * Add functions to be used in your install
-	 * The function `get_blog_list()` is currently deprecated in the WP Core, but currently usable. The plugin check this and get a alternative in [`inc/autoload/core.php`](https://github.com/bueltge/WordPress-Multisite-Enhancements/blob/master/inc/autoload/core.php)
-	 * If you will develop with the alternative to this function from my source, then use the method `get_blog_list()` in class `Multisite_Core`. She use also caching with the Transient API. See more about the function on the function in [`inc/autoload/class-core.php`](https://github.com/bueltge/WordPress-Multisite-Enhancements/blob/master/inc/autoload/class-core.php).
-	 * If you use WordPress version 3.7 and higher, then check the function `wp_get_sites()`, the new alternative function inside the core to get all sides inside the network. The function accept a array with arguments, see the [description](http://wpseek.com/wp_get_sites/).
-* Filter plugin list to find fast your goal. Works on single plugin page and also network plugin page.
+   * The function `get_blog_list()` is currently deprecated in the WP Core, but currently usable. The plugin checks this and gets an alternative in [`inc/autoload/core.php`](./inc/autoload/core.php)
+   * If you will develop with the alternative to this function from my source, then use the method `get_blog_list()` in class `Multisite_Core`. My source also use caching with the Transient API. More about the function in  [`inc/autoload/class-core.php`](./inc/autoload/class-core.php).
+   * If you use WordPress version 3.7 and higher, then check the function `wp_get_sites()`, the new alternative function inside the core to get all sides inside the network. The function accepts a array with arguments, see the [description](http://wpseek.com/wp_get_sites/).
+   * But if you use WordPress 4.6 and higher then that new alternative ;) - `get_sites()` - is the current function to get all sites in the network. The helper method of this plugin `Multisite_Core::get_blog_list()` or the function `get_blog_list()` have all checks included.
+
+* Filter theme list to find your target fast. Works on single theme page and also network theme page.
 
 = Crafted by Inpsyde =
 The team at [Inpsyde](http://inpsyde.com/) is engineering the web and WordPress since 2006.
 
 = Donation? =
-You want to donate - we prefer a [positive review](https://wordpress.org/support/view/plugin-reviews/multisite-enhancements?rate=5#postform), not more.
+You want to donate - we prefer a [positive review](https://wordpress.org/support/view/plugin-reviews/multisite-enhancements?rate=5#postform), nothing more.
 
 == Installation ==
 
 = Requirements =
 * WordPress Multisite 3.0+
-* PHP 5.3*, newer PHP versions will work faster.
+* PHP 5.6*, newer PHP versions will work faster. (It should work also under PHP 5.3, but untested.)
 
 = Installation =
 * Use the installer via back-end of your install or ...
@@ -57,11 +61,11 @@ You want to donate - we prefer a [positive review](https://wordpress.org/support
 6. On which blog is the theme active
 7. New Admin footer text
 8. Favicon on Admin bar
-9. Filter plugin list
+9. Filter Themes
 
 == Other Notes ==
 
-**Crafted by [Inpsyde](http://inpsyde.com) · Engineering the web since 2006.**
+**Crafted by [Inpsyde](https://inpsyde.com) · The team is engineering the Web since 2006.**
 
 = Hints, knowledge =
 See also for helpful hints on the [wiki page](https://github.com/bueltge/wordpress-multisite-enhancements/wiki).
@@ -93,6 +97,60 @@ I'm German and my English might be gruesome here and there.
 So please be patient with me and let me know of typos or grammatical parts. Thanks
 
 == Changelog ==
+= UNRELEASED =
+* Show site path for sites with blank titles in the themes and plugins lists.
+* Show status of deleted sites.
+* Apply styles for archived and deleted sites in the lists.
+* Replace obsolete HTML 'nobr' element.
+
+= 1.5.2 (2019-11-14) =
+* Fix style problem on list of all sites for admin bar.
+* Change enqueue of styles and script to default variants.
+* Remove filter script on plugins, because is a part of the core.
+
+= 1.5.1 (2019-02-25) =
+* Remove feature 'Networkmenu is now scrollable'.
+
+= 1.5.0 (2019-02-24) =
+* Networkmenu is now scrollable.
+* More clearance for the message about inactive cache.
+* Small php fixes.
+
+= 1.4.3 (2018-05-17) =
+* Fix undefined index Network on plugin list, #46
+* Fix small php notes.
+* Fix the possibility to translate the footer message about RAM, SQL queries.
+* ​Add fix to leave message for the parent theme in a single line.
+* Add Ui change to list more as 4 themes in Theme usage overview. Probs @n-goncalves #44
+
+= 1.4.2 (2017-02-22) =
+* Change syntax for usage of plugins, themes; probs @cfoellmann
+* Count the usage in sites for plugins, themes; probs @cfoellmann
+* Change of the autoloader, the removal of a function is now more solid. See [the wiki page](https://github.com/bueltge/wordpress-multisite-enhancements/wiki/Remove-features); probs @cfoellmann
+* Added option to display or hide the list of sites if too big #44; probs @n-goncalves
+
+= 1.4.1 (2017-08-10) =
+* Added a change for initialization of the class to run also on php 5.3 installs.
+
+= 1.4.0 (2017-07-23) =
+* Adds handy ssl identifier to each site in network site view page.
+
+= 1.3.8 (2017-02-23) =
+* Fixed duplicated view on parent theme usage.
+* Adds status text to a site, if is a archived site on plugin/theme list.
+
+= 1.3.7 (2016-10-24) =
+* Fix the usage of plugins for each site in the network on the plugin network view.
+* Add helpers to remove transient caching for development, debugging, if `WP_DEBUG` is true.
+* Fix markup error of missing closing tag in footer text.
+* Fix markup error on comment admin bar menu item in each site item of the item 'My Sites'.
+* Add possibility to translate the plugin.
+
+= 1.3.6 (2016-10-07) =
+* Switch to new core function `get_sites`
+* Remove Plugin Search, now inside the core, since WP 3.6.0
+* Add Theme filter search to single and network theme page to find fast and simple the result.
+
 = 1.3.5 (2016-05-30) =
 * Performance: Change the function to get all sites of a user to set favicon. [#25](https://github.com/bueltge/wordpress-multisite-enhancements/issues/25)
 

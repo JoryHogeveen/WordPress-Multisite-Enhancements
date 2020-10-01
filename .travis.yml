@@ -1,55 +1,40 @@
-# Travis CI Configuration file for WordPress plugin test
-# https://github.com/bueltge/wordpress-multisite-enhancements
 
-# Tell Travis CI we're using PHP
 language:
-    - php
+  - php
 
-# Versions of PHP to test against
-php:
-  - 5.3.3
-  - 5.3
-  - 5.4
-  - 5.5
-  - 5.6
-  - 7.0
-  - hhvm
-  - nightly
+dist:
+  - trusty
 
-# Specify versions of WordPress to test against
-# WP_VERSION = WordPress version number (use "master" for SVN trunk)
-# WP_MULTISITE = whether to test multisite (use either "0" or "1")
-env:
-    - WP_VERSION=master WP_MULTISITE=1
-
-# Next we define our matrix of additional build configurations to test against.
-# The versions listed above will automatically create our first configuration,
-# so it doesn't need to be re-defined below.
-
-# WP_VERSION specifies the tag to use. The way these tests are configured to run
-# requires at least WordPress 4.0.0 Specify "master" to test against SVN trunk.
-
-# Note that Travis CI supports listing these above to automatically build a
-# matrix of configurations, but we're being nice here by manually building a
-# total of four configurations even though we're testing 4 versions of PHP
-# along with 2 versions of WordPress (which would build 8 configs otherwise).
-# This takes half as long to run while still providing adequate coverage.
 matrix:
   fast_finish: true
+  include:
+    - php: 5.6
+      dist: precise
+      env: PHP56=true
+    - php: 7.0
+    - php: 7.1
+    - php: 7.2
+    - php: nightly
+    - php: hhvm
+      env: HHVM=true
   allow_failures:
     - php: hhvm
     - php: nightly
+    - script: vendor/bin/phpcs
 
-# Clones WordPress and configures our testing environment.
-before_script:
-    - composer install
-    - wget https://raw.githubusercontent.com/bueltge/wordpress-multisite-enhancements/setup/setup.sh
-    - source setup.sh
+cache:
+  directories:
+  - vendor
+  - $HOME/.composer/cache
 
-script: phpunit
+before_install:
+  - composer self-update
 
-# wordpress-plugin-tests specific config
-# Tells Travis CI not to run unit tests against the setup branch
-branches:
-    except:
-        - setup
+install:
+  - composer install --optimize-autoloader
+  - if [[ $PHP56 == true ]]; then composer require "phpunit/phpunit:5.7"; fi
+  - if [[ $HHVM == true ]]; then composer require "phpunit/phpunit:5.7"; fi
+
+script:
+  - vendor/bin/phpunit
+  - vendor/bin/phpcs

@@ -2,11 +2,13 @@
 /**
  * Core functions, there was missed in WP Core for use with Multisite.
  *
- * Hint: Since WordPress version 3.7 use the function 'wp_get_sites()',
+ * Hint: Since WordPress version 3.7.0 use the function 'wp_get_sites()',
+ * Hint again: Since WordPress version 4.6.0 is the function 'get_sites()' the right alternative,
  * a alternative inside the core of WP
  *
  * @since    2013-07-24
- * @version  2015-09-03
+ * @version  2016-10-05
+ * @package WordPress
  */
 
 if ( ! function_exists( 'get_blog_list' ) ) {
@@ -21,7 +23,7 @@ if ( ! function_exists( 'get_blog_list' ) ) {
 	 *                         Setting this to string 'all' returns all sites from $start.
 	 * @param Integer $expires Time until expiration in seconds, default 86400s (1day).
 	 *
-	 * @return array   Returns an array of arrays each representing a blog.
+	 * @return array|bool
 	 *                   Details are represented in the following format:
 	 *                       blog_id   (integer) ID of blog detailed.
 	 *                       domain    (string)  Domain used to access this blog.
@@ -29,17 +31,15 @@ if ( ! function_exists( 'get_blog_list' ) ) {
 	 *                       postcount (integer) The number of posts in this blog.
 	 */
 	function get_blog_list( $start = 0, $num = 10, $expires = 86400 ) {
-
 		if ( ! is_multisite() ) {
-			return FALSE;
+			return false;
 		}
 
 		if ( ! class_exists( 'Multisite_Core' ) ) {
-			require_once 'class-core.php';
+			require_once __DIR__ . '/class-core.php';
 			new Multisite_Core();
 		}
 
 		return Multisite_Core::get_blog_list( $start, $num, $expires );
 	}
-
 } // end if fct exist
